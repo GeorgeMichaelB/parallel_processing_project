@@ -169,7 +169,7 @@ Phase 1: Setup & Core Model  ──►  Phase 2: Search Algorithms  ──►  P
   - Canvas (`JPanel`) that renders walls (black), start (green), goal (red), and paths (blue).
   - Mouse click listeners to toggle walls or set start/goal.
 
-#### 15. `Main.java` (Member 6 / Team)
+#### 15. `Main.java` (Member 5 / Team)
 - Parses CLI flags:
   - `--gui`: launches `GridVisualizer`.
   - `--quick-demo`: runs a quick path comparison.

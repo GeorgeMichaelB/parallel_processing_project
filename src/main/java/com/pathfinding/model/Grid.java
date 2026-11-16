@@ -1,49 +1,116 @@
 package com.pathfinding.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * FILE: Grid.java
- * ASSIGNED TO: Member 1 (Grid & Model Lead)
- * 
- * PURPOSE:
- * Represents the 2D grid/map containing cells, obstacles, and boundary dimensions.
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Fields:
- *    - rows (int): number of rows in the grid.
- *    - cols (int): number of columns in the grid.
- *    - cells (Cell[][]): 2D array holding all Cell instances.
- * 
- * 2. Constructor:
- *    - Grid(int rows, int cols): initialize the 2D array and instantiate each Cell(r, c).
- * 
- * 3. Core Methods to Implement:
- *    - getRows(), getCols()
- *    - isValid(int r, int c): returns true if (r, c) is inside grid bounds [0, rows) x [0, cols).
- *    - getCell(int r, int c): returns the Cell at (r, c) (with bounds check).
- *    - isWalkable(int r, int c): returns true if within bounds and cell is not an obstacle.
- *    - setObstacle(int r, int c, boolean isObstacle): sets a wall or clears it.
- *    - setCost(int r, int c, double cost): updates traversal cost (for bonus weighted Dijkstra).
- *    - getNeighbors(Cell cell, boolean allowDiagonal): returns a List<Cell> of adjacent walkable neighbors.
- *      * 4-directional moves: Up (-1, 0), Down (+1, 0), Left (0, -1), Right (0, +1).
- *      * Optional 8-directional: includes diagonals (check for corner cutting).
- *    - generateRandomObstacles(double probability, Random random): randomly places obstacles based on probability.
- *    - clearObstacles(): resets all cells to walkable.
- * 
- * THREAD SAFETY:
- * - Neighbor and walkability queries should be read-only so multiple threads can query the grid simultaneously.
- */
 public class Grid {
+    private final int rows;
+    private final int cols;
+    private final Cell[][] cells;
 
-    // TODO: Declare fields (rows, cols, Cell[][] cells)
+    private static final int[][] DIRS_4 = {
+            { -1, 0 }, // up
+            { 1, 0 }, // down
+            { 0, -1 }, // left
+            { 0, 1 } // right
+    };
 
-    // TODO: Constructor Grid(int rows, int cols)
+    private static final int[][] DIRS_DIAGONAL = {
+            { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 }
+    };
 
-    // TODO: Bounds and walkability checks: isValid(r, c), isWalkable(r, c), getCell(r, c)
+    public Grid(int rows, int cols) {
+        this.rows = rows;
+        this.cols = cols;
+        this.cells = new Cell[rows][cols];
 
-    // TODO: Query neighbors: getNeighbors(Cell cell, boolean allowDiagonal)
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                cells[r][c] = new Cell(r, c, true);
+            }
+        }
+    }
 
-    // TODO: Obstacle setters and random obstacle generator: setObstacle, generateRandomObstacles, clearObstacles
+    public int getRows() {
+        return rows;
+    }
+
+    public int getCols() {
+        return cols;
+    }
+
+    public boolean isValid(int row, int col) {
+        return row >= 0 && row < rows && col >= 0 && col < cols;
+    }
+
+    public Cell getCell(int row, int col) {
+        if (!isValid(row, col)) {
+            return null;
+        }
+        return cells[row][col];
+    }
+
+    public boolean isWalkable(int row, int col) {
+        return isValid(row, col) && cells[row][col].isWalkable();
+    }
+
+    public void setObstacle(int row, int col, boolean isObstacle) {
+        if (isValid(row, col)) {
+            double currentCost = cells[row][col].getCost();
+            cells[row][col] = new Cell(row, col, !isObstacle, currentCost);
+        }
+    }
+
+    public void clearObstacles() {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                cells[r][c] = new Cell(r, c, true);
+            }
+        }
+    }
+
+    public void generateRandomObstacles(double probability, Random random) {
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                boolean wall = random.nextDouble() < probability;
+                setObstacle(r, c, wall);
+            }
+        }
+    }
+
+    public List<Cell> getNeighbors(Cell cell) {
+        return getNeighbors(cell, false);
+    }
+
+    public List<Cell> getNeighbors(Cell cell, boolean allowDiagonal) {
+        List<Cell> neighbors = new ArrayList<>();
+        if (cell == null)
+            return neighbors;
+
+        int r = cell.getRow();
+        int c = cell.getCol();
+
+        for (int[] dir : DIRS_4) {
+            int newR = r + dir[0];
+            int newC = c + dir[1];
+            if (isWalkable(newR, newC)) {
+                neighbors.add(cells[newR][newC]);
+            }
+        }
+
+        if (allowDiagonal) {
+            for (int[] dir : DIRS_DIAGONAL) {
+                int newR = r + dir[0];
+                int newC = c + dir[1];
+                if (isWalkable(newR, newC)) {
+                    if (isWalkable(r, newC) && isWalkable(newR, c)) {
+                        neighbors.add(cells[newR][newC]);
+                    }
+                }
+            }
+        }
+
+        return neighbors;
+    }
 }
