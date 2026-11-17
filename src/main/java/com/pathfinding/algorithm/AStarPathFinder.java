@@ -5,41 +5,118 @@ import com.pathfinding.model.Grid;
 import com.pathfinding.model.Path;
 import com.pathfinding.model.PathRequest;
 
-/**
- * FILE: AStarPathFinder.java
- * ASSIGNED TO: Member 2 (Algorithm Specialist)
- * (Fulfills Bonus Requirement: +2 Points for Heuristics A*)
- * 
- * PURPOSE:
- * Implements the A* (A-Star) search algorithm using heuristic distance functions
- * (Manhattan for 4-way movement, Octile/Euclidean for 8-way movement).
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Implement interface PathFinder.
- * 
- * 2. Helper Data Structure:
- *    - NodeRecord(Cell cell, double fScore) for the PriorityQueue.
- * 
- * 3. Heuristic Method:
- *    - double heuristic(Cell a, Cell b, boolean allowDiagonal):
- *      * Manhattan distance: |x1 - x2| + |y1 - y2|
- *      * Octile distance (if diagonal): (dx + dy) + (Math.sqrt(2.0) - 2.0) * Math.min(dx, dy)
- * 
- * 4. Method findPath(PathRequest request):
- *    - Maintain gScore (exact cost from start to current) and fScore (gScore + heuristic).
- *    - PriorityQueue ordered by fScore.
- *    - Closed set (boolean[][] closed) to prevent re-evaluating settled nodes.
- *    - Reconstruct path once goal is reached.
- * 
- * 5. Method getName(): returns "A* (A-Star) Search".
- */
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
+
 public class AStarPathFinder implements PathFinder {
 
-    // TODO: Helper class NodeRecord(Cell cell, double fScore)
+    private static final double SQRT2 = Math.sqrt(2.0);
 
-    // TODO: Implement heuristic(Cell a, Cell b, boolean allowDiagonal)
+    /** Priority-queue entry ordered by fScore = g + h. */
+    private record NodeRecord(Cell cell, double fScore) {
+    }
 
-    // TODO: Implement getName()
+    @Override
+    public String getName() {
+        return "A* (A-Star) Search";
+    }
 
-    // TODO: Implement findPath(PathRequest request)
-}
+     double heuristic(Cell a, Cell b, boolean allowDiagonal) {
+        int dx = Math.abs(a.getRow() - b.getRow());
+        int dy = Math.abs(a.getCol() - b.getCol());
+        if (allowDiagonal) {
+            return (dx + dy) + (SQRT2 - 2.0) * Math.min(dx, dy);
+        }
+        return dx + dy;
+    }
+
+     @Override
+    public Path findPath(PathRequest request) {
+        if (request == null) {
+            return Path.empty();
+        }
+
+        Grid grid = request.getGrid();
+        Cell start = request.getStart();
+        Cell goal = request.getGoal();
+
+        if (grid == null || start == null || goal == null
+                || !grid.isWalkable(start.getRow(), start.getCol())
+                || !grid.isWalkable(goal.getRow(), goal.getCol())) {
+            return Path.empty();
+        }
+
+        start = grid.getCell(start.getRow(), start.getCol());
+        goal = grid.getCell(goal.getRow(), goal.getCol());
+
+        if (start.equals(goal)) {
+            List<Cell> single = new ArrayList<>(1);
+            single.add(start);
+            return new Path(single, 0.0);
+        }
+
+         boolean diag = request.isAllowDiagonal();
+
+        // Thread-local search state.
+        int rows = grid.getRows();
+        int cols = grid.getCols();
+        double[][] gScore = new double[rows][cols];
+        for (double[] row : gScore) {
+            Arrays.fill(row, Double.POSITIVE_INFINITY);
+        }
+        Cell[][] parent = new Cell[rows][cols];
+        boolean[][] closed = new boolean[rows][cols];
+        PriorityQueue<NodeRecord> open = new PriorityQueue<>(Comparator.comparingDouble(NodeRecord::fScore));
+
+        gScore[start.getRow()][start.getCol()] = 0.0;
+        open.add(new NodeRecord(start, heuristic(start, goal, diag)));
+
+        boolean found = false;
+        while (!open.isEmpty()) {
+            Cell current = open.poll().cell();
+            int cr = current.getRow();
+            int cc = current.getCol();
+
+         if (closed[cr][cc]) {
+                continue; // stale queue entry
+            }
+            closed[cr][cc] = true;
+
+            if (current.equals(goal)) {
+                found = true;
+                break;
+            }
+
+            for (Cell neighbor : grid.getNeighbors(current, diag)) {
+                int nr = neighbor.getRow();
+                int nc = neighbor.getCol();
+                if (closed[nr][nc]) {
+                    continue;
+                }
+                boolean diagonalMove = nr != cr && nc != cc;
+                double moveCost = neighbor.getCost() * (diagonalMove ? SQRT2 : 1.0);
+                double tentative = gScore[cr][cc] + moveCost;
+                if (tentative < gScore[nr][nc]) {
+                    gScore[nr][nc] = tentative;
+                    parent[nr][nc] = current;
+                    open.add(new NodeRecord(neighbor, tentative + heuristic(neighbor, goal, diag)));
+                }
+            }
+        }
+
+     if (!found) {
+            return Path.empty();
+        }
+
+        List<Cell> route = new ArrayList<>();
+        for (Cell at = goal; at != null; at = parent[at.getRow()][at.getCol()]) {
+            route.add(at);
+        }
+        Collections.reverse(route);
+        return new Path(route, gScore[goal.getRow()][goal.getCol()]);
+    }
+} 
