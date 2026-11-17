@@ -5,47 +5,89 @@ import com.pathfinding.model.Grid;
 import com.pathfinding.model.Path;
 import com.pathfinding.model.PathRequest;
 
-/**
- * FILE: BFSPathFinder.java
- * ASSIGNED TO: Member 2 (Algorithm Specialist)
- * 
- * PURPOSE:
- * Breadth-First Search (BFS) pathfinding implementation for unweighted grids.
- * Guarantees finding the shortest path (minimum number of steps).
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Implement interface PathFinder.
- * 
- * 2. Method findPath(PathRequest request):
- *    Step a: Extract grid, start, and goal from request.
- *    Step b: Edge checks:
- *            - If start or goal is null or not walkable, return Path.empty().
- *            - If start.equals(goal), return a Path containing just the start cell.
- *    Step c: Allocate local data structures (DO NOT store on Grid or Cell):
- *            - boolean[][] visited = new boolean[rows][cols];
- *            - Cell[][] parent = new Cell[rows][cols]; (to reconstruct the path)
- *            - Queue<Cell> queue = new ArrayDeque<>();
- *    Step d: BFS Loop:
- *            - Add start to queue, mark visited[start.r][start.c] = true.
- *            - While queue is not empty:
- *                * Poll current cell.
- *                * If current equals goal -> break (path found!).
- *                * For each neighbor in grid.getNeighbors(current, request.isAllowDiagonal()):
- *                    if not visited[neighbor.r][neighbor.c]:
- *                        mark visited = true
- *                        set parent[neighbor.r][neighbor.c] = current
- *                        add neighbor to queue
- *    Step e: Path Reconstruction:
- *            - If goal was not reached, return Path.empty().
- *            - Backtrack from goal using the parent array back to start.
- *            - Reverse the list to get start -> goal order.
- *            - Return new Path(route, totalSteps).
- * 
- * 3. Method getName(): returns "Breadth-First Search (BFS)".
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+
+/*
+ * Breadth-First Search pathfinder for unweighted grids.
  */
 public class BFSPathFinder implements PathFinder {
 
-    // TODO: Implement getName()
+    @Override
+    public String getName() {
+        return "Breadth-First Search (BFS)";
+    }
 
-    // TODO: Implement findPath(PathRequest request) following the steps outlined above
+    @Override
+    public Path findPath(PathRequest request) {
+        if (request == null) {
+            return Path.empty();
+        }
+
+        Grid grid = request.getGrid();
+        Cell start = request.getStart();
+        Cell goal = request.getGoal();
+
+        // Edge cases: missing/blocked/out-of-bounds endpoints.
+        if (grid == null || start == null || goal == null
+                || !grid.isWalkable(start.getRow(), start.getCol())
+                || !grid.isWalkable(goal.getRow(), goal.getCol())) {
+            return Path.empty();
+        }
+
+        // Use the grid's own cell instances so lookups are consistent.
+        start = grid.getCell(start.getRow(), start.getCol());
+        goal = grid.getCell(goal.getRow(), goal.getCol());
+
+        if (start.equals(goal)) {
+            List<Cell> single = new ArrayList<>(1);
+            single.add(start);
+            return new Path(single, 0);
+        }
+
+        // Thread-local search state (never stored on Grid or Cell).
+        int rows = grid.getRows();
+        int cols = grid.getCols();
+        boolean[][] visited = new boolean[rows][cols];
+        Cell[][] parent = new Cell[rows][cols];
+        Queue<Cell> queue = new ArrayDeque<>();
+
+        visited[start.getRow()][start.getCol()] = true;
+        queue.add(start);
+
+        boolean found = false;
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+            if (current.equals(goal)) {
+                found = true;
+                break;
+            }
+            for (Cell neighbor : grid.getNeighbors(current, request.isAllowDiagonal())) {
+                int r = neighbor.getRow();
+                int c = neighbor.getCol();
+                if (!visited[r][c]) {
+                    visited[r][c] = true;
+                    parent[r][c] = current;
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        if (!found) {
+            return Path.empty();
+        }
+
+        // Backtrack from goal to start, then reverse into start -> goal order.
+        List<Cell> route = new ArrayList<>();
+        for (Cell at = goal; at != null; at = parent[at.getRow()][at.getCol()]) {
+            route.add(at);
+        }
+        Collections.reverse(route);
+
+        int totalSteps = route.size() - 1;
+        return new Path(route, totalSteps);
+    }
 }
