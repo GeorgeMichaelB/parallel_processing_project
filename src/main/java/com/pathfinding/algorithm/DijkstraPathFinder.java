@@ -6,16 +6,28 @@ import com.pathfinding.model.Path;
 import com.pathfinding.model.PathRequest;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 
+/**
+ * Dijkstra's weighted shortest-path algorithm.
+ * <p>
+ * Explores cells in order of increasing cumulative cost from the start,
+ * guaranteeing an optimal path on weighted grids. Diagonal moves, when
+ * permitted, scale the neighbour's terrain cost by √2.
+ * <p>
+ * Thread-safe: every invocation of {@link #findPath(PathRequest)} allocates
+ * its own local data structures, so concurrent calls never interfere.
+ */
 public class DijkstraPathFinder implements PathFinder {
+
     private static final double SQRT2 = Math.sqrt(2.0);
 
-    private record NodeRecord(Cell cell, double distance) {
-    }
+    /** Priority-queue entry ordered by cumulative distance from the start. */
+    private record NodeRecord(Cell cell, double distance) {}
 
     @Override
     public String getName() {
@@ -47,12 +59,14 @@ public class DijkstraPathFinder implements PathFinder {
             return new Path(single, 0.0);
         }
 
+        boolean diag = request.isAllowDiagonal();
+
         // Thread-local search state.
         int rows = grid.getRows();
         int cols = grid.getCols();
         double[][] dist = new double[rows][cols];
         for (double[] row : dist) {
-            java.util.Arrays.fill(row, Double.POSITIVE_INFINITY);
+            Arrays.fill(row, Double.POSITIVE_INFINITY);
         }
         Cell[][] parent = new Cell[rows][cols];
         boolean[][] settled = new boolean[rows][cols];
@@ -61,7 +75,6 @@ public class DijkstraPathFinder implements PathFinder {
         dist[start.getRow()][start.getCol()] = 0.0;
         pq.add(new NodeRecord(start, 0.0));
 
-        
         boolean found = false;
         while (!pq.isEmpty()) {
             Cell current = pq.poll().cell();
@@ -78,14 +91,14 @@ public class DijkstraPathFinder implements PathFinder {
                 break;
             }
 
-            for (Cell neighbor : grid.getNeighbors(current, request.isAllowDiagonal())) {
+            for (Cell neighbor : grid.getNeighbors(current, diag)) {
                 int nr = neighbor.getRow();
                 int nc = neighbor.getCol();
                 if (settled[nr][nc]) {
                     continue;
                 }
-                boolean diagonal = nr != cr && nc != cc;
-                double moveCost = neighbor.getCost() * (diagonal ? SQRT2 : 1.0);
+                boolean diagonalMove = nr != cr && nc != cc;
+                double moveCost = neighbor.getCost() * (diagonalMove ? SQRT2 : 1.0);
                 double tentative = dist[cr][cc] + moveCost;
                 if (tentative < dist[nr][nc]) {
                     dist[nr][nc] = tentative;
@@ -99,11 +112,11 @@ public class DijkstraPathFinder implements PathFinder {
             return Path.empty();
         }
 
-         List<Cell> route = new ArrayList<>();
+        List<Cell> route = new ArrayList<>();
         for (Cell at = goal; at != null; at = parent[at.getRow()][at.getCol()]) {
             route.add(at);
         }
         Collections.reverse(route);
         return new Path(route, dist[goal.getRow()][goal.getCol()]);
-    }       
+    }
 }

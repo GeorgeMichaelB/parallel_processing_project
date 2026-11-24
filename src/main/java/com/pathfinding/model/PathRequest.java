@@ -8,32 +8,67 @@ package com.pathfinding.model;
  * Encapsulates a single path search task:
  * references the shared Grid, a starting cell, and a goal cell.
  * Multiple PathRequest instances will be processed independently sequentially and in parallel.
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Fields:
- *    - id (int): unique identifier for tracking/debugging the request.
- *    - grid (Grid): the grid environment to search within.
- *    - start (Cell): source starting position.
- *    - goal (Cell): target destination position.
- *    - allowDiagonal (boolean, optional/bonus): whether 8-way diagonal moves are permitted.
- * 
- * 2. Constructors:
- *    - PathRequest(int id, Grid grid, Cell start, Cell goal)
- *    - PathRequest(int id, Grid grid, Cell start, Cell goal, boolean allowDiagonal)
- * 
- * 3. Getters:
- *    - getId(), getGrid(), getStart(), getGoal(), isAllowDiagonal()
- * 
- * 4. toString():
- *    - e.g., "PathRequest#1[Start=(0,0), Goal=(10,10)]"
  */
 public class PathRequest {
 
-    // TODO: Declare fields (id, grid, start, goal, allowDiagonal)
+    private final int id;
+    private final Grid grid;
+    private final Cell start;
+    private final Cell goal;
+    private final boolean allowDiagonal;
 
-    // TODO: Implement constructors
+    /**
+     * Creates a PathRequest with diagonal movement disabled by default.
+     *
+     * @param id   unique identifier for this request
+     * @param grid the shared grid on which pathfinding is performed
+     * @param start the starting cell
+     * @param goal  the goal cell
+     */
+    public PathRequest(int id, Grid grid, Cell start, Cell goal) {
+        this(id, grid, start, goal, false);
+    }
 
-    // TODO: Implement getters
+    /**
+     * Creates a PathRequest with explicit diagonal movement setting.
+     *
+     * @param id            unique identifier for this request
+     * @param grid          the shared grid on which pathfinding is performed
+     * @param start         the starting cell
+     * @param goal          the goal cell
+     * @param allowDiagonal whether diagonal movement is permitted
+     */
+    public PathRequest(int id, Grid grid, Cell start, Cell goal, boolean allowDiagonal) {
+        this.id = id;
+        this.grid = grid;
+        this.start = start;
+        this.goal = goal;
+        this.allowDiagonal = allowDiagonal;
+    }
 
-    // TODO: Implement toString()
+    public int getId() {
+        return id;
+    }
+
+    public Grid getGrid() {
+        return grid;
+    }
+
+    public Cell getStart() {
+        return start;
+    }
+
+    public Cell getGoal() {
+        return goal;
+    }
+
+    public boolean isAllowDiagonal() {
+        return allowDiagonal;
+    }
+
+    @Override
+    public String toString() {
+        return "PathRequest#" + id + "[Start=(" + start.getRow() + "," + start.getCol()
+                + "), Goal=(" + goal.getRow() + "," + goal.getCol() + ")]";
+    }
 }
