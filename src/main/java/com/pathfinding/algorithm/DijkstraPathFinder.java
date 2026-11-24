@@ -5,51 +5,118 @@ import com.pathfinding.model.Grid;
 import com.pathfinding.model.Path;
 import com.pathfinding.model.PathRequest;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
+
 /**
- * FILE: DijkstraPathFinder.java
- * ASSIGNED TO: Member 2 (Algorithm Specialist)
- * (Fulfills Bonus Requirement: +2 Points for Weighted Paths / Advanced Algorithms)
- * 
- * PURPOSE:
- * Computes shortest path on a weighted grid where different cells have different traversal costs.
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Implement interface PathFinder.
- * 
- * 2. Helper Data Structure:
- *    - An internal record or class (e.g. NodeRecord(Cell cell, double distance))
- *      implementing Comparable or using a Comparator for PriorityQueue ordering.
- * 
- * 3. Method findPath(PathRequest request):
- *    Step a: Extract grid, start, goal. Perform edge checks (blocked cells, out-of-bounds).
- *    Step b: Allocate thread-local structures:
- *            - double[][] dist = new double[rows][cols]; initialize with Double.POSITIVE_INFINITY.
- *            - Cell[][] parent = new Cell[rows][cols];
- *            - boolean[][] settled = new boolean[rows][cols];
- *            - PriorityQueue<NodeRecord> pq = new PriorityQueue<>(Comparator.comparingDouble(...));
- *    Step c: Algorithm Loop:
- *            - dist[start.r][start.c] = 0.0;
- *            - pq.add(new NodeRecord(start, 0.0));
- *            - While pq is not empty:
- *                * Poll node with minimum distance.
- *                * If already settled, skip. Otherwise mark settled[r][c] = true.
- *                * If current == goal -> break!
- *                * For each neighbor:
- *                    tentativeDist = dist[current] + neighbor.getCost();
- *                    (scale by Math.sqrt(2.0) if diagonal move)
- *                    if tentativeDist < dist[neighbor]:
- *                        dist[neighbor] = tentativeDist;
- *                        parent[neighbor] = current;
- *                        pq.add(new NodeRecord(neighbor, tentativeDist));
- *    Step d: Reconstruct path from goal to start and return new Path(route, dist[goal]).
- * 
- * 4. Method getName(): returns "Dijkstra's Algorithm".
+ * Dijkstra's weighted shortest-path algorithm.
+ * <p>
+ * Explores cells in order of increasing cumulative cost from the start,
+ * guaranteeing an optimal path on weighted grids. Diagonal moves, when
+ * permitted, scale the neighbour's terrain cost by √2.
+ * <p>
+ * Thread-safe: every invocation of {@link #findPath(PathRequest)} allocates
+ * its own local data structures, so concurrent calls never interfere.
  */
 public class DijkstraPathFinder implements PathFinder {
 
-    // TODO: Helper class NodeRecord(Cell cell, double distance)
+    private static final double SQRT2 = Math.sqrt(2.0);
 
-    // TODO: Implement getName()
+    /** Priority-queue entry ordered by cumulative distance from the start. */
+    private record NodeRecord(Cell cell, double distance) {}
 
-    // TODO: Implement findPath(PathRequest request)
+    @Override
+    public String getName() {
+        return "Dijkstra's Algorithm";
+    }
+
+    @Override
+    public Path findPath(PathRequest request) {
+        if (request == null) {
+            return Path.empty();
+        }
+
+        Grid grid = request.getGrid();
+        Cell start = request.getStart();
+        Cell goal = request.getGoal();
+
+        if (grid == null || start == null || goal == null
+                || !grid.isWalkable(start.getRow(), start.getCol())
+                || !grid.isWalkable(goal.getRow(), goal.getCol())) {
+            return Path.empty();
+        }
+
+        start = grid.getCell(start.getRow(), start.getCol());
+        goal = grid.getCell(goal.getRow(), goal.getCol());
+
+        if (start.equals(goal)) {
+            List<Cell> single = new ArrayList<>(1);
+            single.add(start);
+            return new Path(single, 0.0);
+        }
+
+        boolean diag = request.isAllowDiagonal();
+
+        // Thread-local search state.
+        int rows = grid.getRows();
+        int cols = grid.getCols();
+        double[][] dist = new double[rows][cols];
+        for (double[] row : dist) {
+            Arrays.fill(row, Double.POSITIVE_INFINITY);
+        }
+        Cell[][] parent = new Cell[rows][cols];
+        boolean[][] settled = new boolean[rows][cols];
+        PriorityQueue<NodeRecord> pq = new PriorityQueue<>(Comparator.comparingDouble(NodeRecord::distance));
+
+        dist[start.getRow()][start.getCol()] = 0.0;
+        pq.add(new NodeRecord(start, 0.0));
+
+        boolean found = false;
+        while (!pq.isEmpty()) {
+            Cell current = pq.poll().cell();
+            int cr = current.getRow();
+            int cc = current.getCol();
+
+            if (settled[cr][cc]) {
+                continue; // stale queue entry
+            }
+            settled[cr][cc] = true;
+
+            if (current.equals(goal)) {
+                found = true;
+                break;
+            }
+
+            for (Cell neighbor : grid.getNeighbors(current, diag)) {
+                int nr = neighbor.getRow();
+                int nc = neighbor.getCol();
+                if (settled[nr][nc]) {
+                    continue;
+                }
+                boolean diagonalMove = nr != cr && nc != cc;
+                double moveCost = neighbor.getCost() * (diagonalMove ? SQRT2 : 1.0);
+                double tentative = dist[cr][cc] + moveCost;
+                if (tentative < dist[nr][nc]) {
+                    dist[nr][nc] = tentative;
+                    parent[nr][nc] = current;
+                    pq.add(new NodeRecord(neighbor, tentative));
+                }
+            }
+        }
+
+        if (!found) {
+            return Path.empty();
+        }
+
+        List<Cell> route = new ArrayList<>();
+        for (Cell at = goal; at != null; at = parent[at.getRow()][at.getCol()]) {
+            route.add(at);
+        }
+        Collections.reverse(route);
+        return new Path(route, dist[goal.getRow()][goal.getCol()]);
+    }
 }

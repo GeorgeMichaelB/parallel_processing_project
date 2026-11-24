@@ -6,43 +6,92 @@ import java.util.List;
 
 /**
  * FILE: PathfindingResult.java
- * ASSIGNED TO: Member 3 (Concurrency Engineer) & Member 4 (Benchmark Lead)
  * 
- * PURPOSE:
- * Encapsulates the execution metrics and output results of running a batch of PathRequests.
- * Stores throughput, total execution time, thread configuration, and the computed paths.
- * 
- * WHAT YOU NEED TO WRITE IN THIS FILE:
- * 1. Fields:
- *    - engineType (String): e.g. "SequentialEngine" or "ParallelEngine".
- *    - threadCount (int): number of threads utilized (1 for sequential).
- *    - totalRequests (int): total number of PathRequests processed.
- *    - successfulPaths (int): count of requests where a valid path was found.
- *    - executionTimeNanos (long): elapsed wall-clock time in nanoseconds.
- *    - paths (List<Path>): list of resulting Path objects.
- * 
- * 2. Constructor:
- *    - PathfindingResult(String engineType, int threadCount, List<Path> paths, long executionTimeNanos)
- *      * Calculate successfulPaths by iterating through paths and counting those where path.exists() == true.
- * 
- * 3. Query & Metric Methods:
- *    - getEngineType(): String
- *    - getThreadCount(): int
- *    - getTotalRequests(): int
- *    - getSuccessfulPaths(): int
- *    - getExecutionTimeNanos(): long
- *    - getExecutionTimeMillis(): double (executionTimeNanos / 1,000,000.0)
- *    - getThroughput(): double (totalRequests / executionTimeInSeconds)
- *    - getPaths(): List<Path>
- *    - toString(): formatted summary string.
+ * Holds the aggregate results of running a pathfinding engine over a set of
+ * {@link com.pathfinding.model.PathRequest}s, including timing statistics and
+ * the resulting {@link Path} objects.
  */
 public class PathfindingResult {
 
-    // TODO: Declare fields
+    private final String engineType;
+    private final int threadCount;
+    private final int totalRequests;
+    private final int successfulPaths;
+    private final long executionTimeNanos;
+    private final List<Path> paths;
 
-    // TODO: Constructor PathfindingResult(...)
+    /**
+     * Constructs a PathfindingResult.
+     *
+     * @param engineType         descriptive name of the engine (e.g. "SequentialEngine")
+     * @param threadCount        number of threads utilized (1 for sequential)
+     * @param paths              list of resulting Path objects
+     * @param executionTimeNanos elapsed wall-clock time in nanoseconds
+     */
+    public PathfindingResult(String engineType, int threadCount, List<Path> paths, long executionTimeNanos) {
+        this.engineType = engineType;
+        this.threadCount = threadCount;
+        this.paths = paths;
+        this.executionTimeNanos = executionTimeNanos;
+        this.totalRequests = paths.size();
 
-    // TODO: Implement metric getters: getExecutionTimeMillis(), getThroughput(), etc.
+        int count = 0;
+        for (Path path : paths) {
+            if (path.exists()) {
+                count++;
+            }
+        }
+        this.successfulPaths = count;
+    }
 
-    // TODO: toString()
+    public String getEngineType() {
+        return engineType;
+    }
+
+    public int getThreadCount() {
+        return threadCount;
+    }
+
+    public int getTotalRequests() {
+        return totalRequests;
+    }
+
+    public int getSuccessfulPaths() {
+        return successfulPaths;
+    }
+
+    public long getExecutionTimeNanos() {
+        return executionTimeNanos;
+    }
+
+    /**
+     * Returns the execution time converted to milliseconds.
+     *
+     * @return execution time in milliseconds
+     */
+    public double getExecutionTimeMillis() {
+        return executionTimeNanos / 1_000_000.0;
+    }
+
+    /**
+     * Returns the throughput in requests per second.
+     *
+     * @return number of requests processed per second
+     */
+    public double getThroughput() {
+        return totalRequests / (executionTimeNanos / 1_000_000_000.0);
+    }
+
+    public List<Path> getPaths() {
+        return paths;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "PathfindingResult{engine='%s', threads=%d, requests=%d, successful=%d, " +
+                "time=%.2f ms, throughput=%.2f req/s}",
+                engineType, threadCount, totalRequests, successfulPaths,
+                getExecutionTimeMillis(), getThroughput());
+    }
 }

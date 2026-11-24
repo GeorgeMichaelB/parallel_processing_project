@@ -62,6 +62,13 @@ public class Grid {
         }
     }
 
+    public void setCost(int row, int col, double cost) {
+        if (isValid(row, col)) {
+            boolean walkable = cells[row][col].isWalkable();
+            cells[row][col] = new Cell(row, col, walkable, cost);
+        }
+    }
+
     public void clearObstacles() {
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {

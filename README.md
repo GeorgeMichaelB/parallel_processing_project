@@ -1,7 +1,7 @@
 # Parallel Pathfinding on Grid (Multiple Shortest Paths)
 **Project 6 — Concurrency & Object-Oriented Design Framework**
 
-This repository contains the architecture, starter templates, and work plan for **Project 6 (Parallel Pathfinding on Grid)**. All classes have been created as clean skeleton files with comprehensive Javadoc and `TODO` comments detailing the exact fields, constructors, methods, data structures, and concurrency rules you and your team need to write.
+This repository contains the architecture, implementation, test suite, and deliverables for **Project 6 (Parallel Pathfinding on Grid)**. All classes have been fully implemented with clean object-oriented design, thread-safe concurrent execution, comprehensive unit tests, an interactive GUI visualizer, and academic documentation.
 
 ---
 
@@ -32,13 +32,13 @@ The framework strictly complies with all specifications from `ParallelProcessing
 
 | Requirement | Assigned File | Description | Status |
 | :--- | :--- | :--- | :---: |
-| **Grid Representation** | `Grid.java` & `Cell.java` | 2D matrix, obstacle tracking, neighbor queries, bounds validation. | Skeleton Ready |
-| **Sequential Pathfinding** | `BFSPathFinder.java` | Queue-based shortest path with path reconstruction. | Skeleton Ready |
-| **Multiple Path Requests** | `PathRequest.java` | Encapsulates Grid, start cell, goal cell, and search configuration. | Skeleton Ready |
-| **Parallel Execution** | `ParallelPathfindingEngine.java` | `ExecutorService` with `Callable<Path>` tasks. | Skeleton Ready |
-| **Benchmarking Driver** | `PathfindingExperiment.java` | Tests varying request counts (10, 50, 100, 250) & thread counts (1, 2, 4, 8, 16). | Skeleton Ready |
-| **Bonus (+3 pts) GUI** | `GridVisualizer.java` | Interactive Swing visualizer with path rendering and obstacle editing. | Skeleton Ready |
-| **Bonus (+2 pts) Advanced Algorithms** | `DijkstraPathFinder.java` & `AStarPathFinder.java` | Weighted terrain costs and heuristic-guided A* search. | Skeleton Ready |
+| **Grid Representation** | `Grid.java` & `Cell.java` | 2D matrix, obstacle tracking, neighbor queries, bounds validation. | ✅ Completed & Verified |
+| **Sequential Pathfinding** | `BFSPathFinder.java` | Queue-based shortest path with path reconstruction. | ✅ Completed & Verified |
+| **Multiple Path Requests** | `PathRequest.java` | Encapsulates Grid, start cell, goal cell, and search configuration. | ✅ Completed & Verified |
+| **Parallel Execution** | `ParallelPathfindingEngine.java` | `ExecutorService` with `Callable<Path>` tasks. | ✅ Completed & Verified |
+| **Benchmarking Driver** | `PathfindingExperiment.java` | Tests varying request counts (10, 50, 100, 250) & thread counts (1, 2, 4, 8, 16). | ✅ Completed & Verified |
+| **Bonus (+3 pts) GUI** | `GridVisualizer.java` | Interactive Swing visualizer with path rendering and obstacle editing. | ✅ Completed & Verified |
+| **Bonus (+2 pts) Advanced Algorithms** | `DijkstraPathFinder.java` & `AStarPathFinder.java` | Weighted terrain costs and heuristic-guided A* search. | ✅ Completed & Verified |
 
 ---
 
@@ -53,7 +53,7 @@ To ensure equal workload and avoid merge conflicts, tasks are divided among the 
 | **Member 3** | **Concurrency Engineer** | • Implement `SequentialPathfindingEngine` baseline.<br>• Implement `ParallelPathfindingEngine` with `ExecutorService`.<br>• Oversee task scheduling (`Callable<Path>`), thread pool lifecycle, and error handling. | `PathRequest.java`<br>`ParallelPathfindingEngine.java`<br>`SequentialPathfindingEngine.java` |
 | **Member 4** | **Benchmark & Metrics Lead** | • Develop `PathfindingExperiment` harness.<br>• Execute benchmarks across workloads (10, 50, 100, 250 reqs) and threads (1 to 16).<br>• Calculate speedup, throughput, and export data/charts for the report. | `BenchmarkResult.java`<br>`PathfindingExperiment.java`<br>`PathfindingResult.java` |
 | **Member 5** | **GUI & Visualization Lead** *(Bonus +3)* | • Build and polish `GridVisualizer` (interactive canvas).<br>• Implement visual path tracing, obstacle painting, and start/goal picking.<br>• Connect GUI buttons to run sequential vs. parallel comparisons live. | `GridVisualizer.java`<br>`Main.java` |
-| **Member 6** | **QA, Report & Presentation Lead** | • Set up JUnit unit tests and boundary validation.<br>• Author the **3–4 page academic project report**.<br>• Design the **5–8 minute slide deck** and orchestrate the live demo. | Unit Tests<br>`Report (3-4 pages)`<br>`Presentation Slides` |
+| **Member 6** | **QA, Report & Presentation Lead** | • Set up JUnit unit tests and boundary validation.<br>• Author the **3–4 page academic project report**.<br>• Design the **5–8 minute slide deck** and orchestrate the live demo. | `src/test/` (29 Unit Tests)<br>`REPORT.md` (3-4 pages)<br>`PRESENTATION.md` (Slides) |
 
 ---
 
@@ -90,6 +90,7 @@ Phase 1: Setup & Core Model  ──►  Phase 2: Search Algorithms  ──►  P
   - `getCell(r, c)`: returns cell at position.
   - `isWalkable(r, c)`: returns true if cell exists and is walkable.
   - `setObstacle(r, c, boolean isObstacle)`: sets a wall or clears it.
+  - `setCost(r, c, double cost)`: sets terrain traversal cost.
   - `getNeighbors(Cell cell, boolean allowDiagonal)`: returns adjacent walkable cells (4-way, or 8-way diagonal without cutting blocked corners).
   - `generateRandomObstacles(double probability, Random random)`: sets random walls.
 
@@ -165,15 +166,15 @@ Phase 1: Setup & Core Model  ──►  Phase 2: Search Algorithms  ──►  P
 
 #### 14. `GridVisualizer.java` (Member 5 — Bonus +3 pts)
 - Extends `JFrame`. Contains:
-  - Toolbar with algorithm selector, thread selector, and trigger buttons ("Find Path", "Run Batch", "Randomize").
-  - Canvas (`JPanel`) that renders walls (black), start (green), goal (red), and paths (blue).
+  - Toolbar with algorithm selector, thread selector, and trigger buttons ("Find Path", "Run Batch (Seq)", "Run Batch (Par)", "Randomize", "Clear").
+  - Canvas (`JPanel`) that renders walls (dark gray), start (green), goal (red), and paths (cyan).
   - Mouse click listeners to toggle walls or set start/goal.
 
 #### 15. `Main.java` (Member 5 / Team)
 - Parses CLI flags:
-  - `--gui`: launches `GridVisualizer`.
-  - `--quick-demo`: runs a quick path comparison.
-  - Default: runs `PathfindingExperiment.runSuite(...)`.
+  - `--gui` or `-g`: launches `GridVisualizer`.
+  - `--quick-demo` or `-d`: runs a quick path comparison (BFS, Dijkstra, A*).
+  - Default (or `--benchmark`): runs `PathfindingExperiment.runSuite(...)`.
 
 ---
 
@@ -188,22 +189,22 @@ Phase 1: Setup & Core Model  ──►  Phase 2: Search Algorithms  ──►  P
 
 ## 7. How to Build & Run When You Write the Code
 
-Once you implement the methods:
-
 ```bash
-# Compile and run full benchmark suite
-./run.sh
+# Windows (Command Prompt / PowerShell)
+.\run.bat                # Full benchmark suite
+.\run.bat --quick-demo   # Quick algorithm comparison
+.\run.bat --gui          # Launch GUI visualizer
 
-# Run quick algorithm demo
-./run.sh --quick-demo
-
-# Launch GUI Visualizer
-./run.sh --gui
+# Linux / macOS / Git Bash
+./run.sh                 # Full benchmark suite
+./run.sh --quick-demo    # Quick algorithm comparison
+./run.sh --gui           # Launch GUI visualizer
 ```
 
 Or using standard Maven:
 ```bash
 mvn clean compile
+mvn test
 mvn exec:java -Dexec.mainClass="com.pathfinding.Main"
 ```
 
@@ -211,8 +212,8 @@ mvn exec:java -Dexec.mainClass="com.pathfinding.Main"
 
 ## 8. Deliverables & Bonus Points Checklist (+5 Points)
 
-- [ ] **Deliverable 1: Source Code** (Grid, Cell, Path, PathRequest, PathFinder, Engines, Experiment).
-- [ ] **Deliverable 2: Academic Report (3–4 pages)** (OOP design diagram, concurrency discussion, benchmark tables, speedup interpretation).
-- [ ] **Deliverable 3: Presentation (5–8 minutes)** (Slides + live GUI demo on sample grids).
-- [ ] **Bonus +3 points**: Interactive GUI Visualizer (`GridVisualizer.java`).
-- [ ] **Bonus +2 points**: Dijkstra (weighted) & A* (heuristics) algorithms + diagonal movement.
+- [x] **Deliverable 1: Source Code** (`Grid`, `Cell`, `Path`, `PathRequest`, `PathFinder`, `BFSPathFinder`, `DijkstraPathFinder`, `AStarPathFinder`, `SequentialPathfindingEngine`, `ParallelPathfindingEngine`, `PathfindingResult`, `BenchmarkResult`, `PathfindingExperiment`, `GridVisualizer`, `Main`).
+- [x] **Deliverable 2: Academic Report (3–4 pages)** ([`REPORT.md`](REPORT.md) with problem formulation, Mermaid UML class diagram, concurrency safety analysis, benchmark tables, and speedup interpretation).
+- [x] **Deliverable 3: Presentation (5–8 minutes)** ([`PRESENTATION.md`](PRESENTATION.md) with 7 structured slides, presenter speaking notes, and live GUI demo walkthrough script).
+- [x] **Bonus +3 points**: Interactive GUI Visualizer ([`GridVisualizer.java`](src/main/java/com/pathfinding/ui/GridVisualizer.java)).
+- [x] **Bonus +2 points**: Dijkstra (weighted) & A* (heuristics) algorithms + 8-way diagonal movement ([`DijkstraPathFinder.java`](src/main/java/com/pathfinding/algorithm/DijkstraPathFinder.java) & [`AStarPathFinder.java`](src/main/java/com/pathfinding/algorithm/AStarPathFinder.java)).
